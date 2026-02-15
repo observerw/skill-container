@@ -1,0 +1,37 @@
+#!/bin/sh
+
+set -u
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null || true)
+[ -n "$repo_root" ] || exit 0
+
+skill_file="$repo_root/SKILL.md"
+[ -f "$skill_file" ] || exit 0
+
+runtime=''
+for candidate in docker podman nerdctl; do
+  if command -v "$candidate" >/dev/null 2>&1; then
+    runtime="$candidate"
+    break
+  fi
+done
+
+[ -n "$runtime" ] || exit 0
+
+image=$(awk '
+  /^image:[[:space:]]*/ {
+    sub(/^image:[[:space:]]*/, "", $0)
+    print
+    exit
+  }
+' "$skill_file")
+
+image=${image#\"}
+image=${image%\"}
+image=${image#\'}
+image=${image%\'}
+
+[ -n "$image" ] || exit 0
+
+printf '[skill-hook] %s pull %s\n' "$runtime" "$image"
+"$runtime" pull "$image"

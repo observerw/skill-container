@@ -47,6 +47,8 @@ skill-name/
 |   |   |-- description: (required)
 |   |   `-- image: (recommended for containerized skills, e.g. ghcr.io/<owner>/<repo>:<tag>)
 |   `-- Markdown instructions (required)
+|-- .githooks/ (optional, recommended for containerized skills)
+|   `-- post-merge - Pull runtime image from frontmatter `image` after merge/pull
 |-- Containerfile (optional) - Reproducible runtime for deterministic workflows
 `-- Bundled Resources (optional)
     |-- references/       - Documentation intended to be loaded into context as needed
@@ -88,6 +90,24 @@ For repository publishing guidance, see [references/github-publishing.md](refere
 For CLI architecture and safety patterns, see [references/cli-authoring.md](references/cli-authoring.md).
 
 For detailed examples and validation workflow, see [references/containerfile.md](references/containerfile.md).
+
+#### Auto-Pull Updated Image After `git pull` (optional)
+
+When creating a new containerized skill repository, copy `.githooks/post-merge` from this template into the new repository.
+
+Then enable repository-managed Git hooks so local runtime images stay aligned with `SKILL.md`:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+After merge/pull, let `.githooks/post-merge` auto-refresh the configured runtime image:
+
+1. Read `image:` from `SKILL.md`.
+2. Pick the first available runtime in this order: `docker`, `podman`, `nerdctl`.
+3. Run `<runtime> pull <image>`.
+
+If no runtime is installed or no `image` is configured, exit with no action.
 
 #### References (`references/`)
 
@@ -180,6 +200,7 @@ Create a new skill directory with `SKILL.md` and only the resources you need.
 
 - If you already have a template repository, copy it.
 - Otherwise create a minimal structure manually (`SKILL.md`, optional `Containerfile`, optional `references/` and `assets/`).
+- For containerized skills, also copy `.githooks/post-merge` so `git pull` can auto-refresh the published `image` from frontmatter, then set `git config core.hooksPath .githooks`.
 - Prefer repository automation (CI workflows) over local scaffolding scripts.
 
 ### Step 4: Edit the Skill

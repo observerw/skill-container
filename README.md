@@ -1,27 +1,65 @@
 # Skill Container
 
-Skill Container are a simple, open and portable format for giving agents new capabilities and expertise.
+Skill Containers are a simple, open, and portable format for giving agents new capabilities and expertise.
 
 ## Why?
 
-I have to say the original [Agent Skills](https://agentskills.io) format is really, _really_ lack of design.
+> [!IMPORTANT]
+> **TL;DR:** The original Agent Skills format looks flexible, but it breaks core engineering basics: unclear runtime contracts, weak portability, basically zero safety boundaries, and no clean distribution/update story.
 
-Key problems:
+I have to say the original [Agent Skills](https://agentskills.io) format is really, _really_ poorly designed. It feels like it was put together in 5 minutes and still presented as a serious "standard".
 
 - They use `scripts/` for executable tools, but **do not specify how to run them**:
-  - Skills often use python scripts with `#!/usr/bin/env python3` with third-party dependencies, this leads to:
-    - Messing up your local environment (e.g. `pip install` into your system python env)
-    - No cross-platform support
-    - Lack of proper documentation on how to run the scripts
+  - Skills often use Python scripts with `#!/usr/bin/env python3` and third-party dependencies. This leads to:
+    - Messing up your local environment (e.g. `pip install` into your system Python environment)
+    - **No cross-platform support**
+    - **No proper documentation** on how to run scripts
     - ...
+  - Many skills are just wrappers around existing CLI programs, which often assume the right CLI (and version) is already installed on the host machine:
+    - Easy to end up with the installed CLI version drifting from what the `SKILL` content expects
+    - The same skill may behave differently across machines/environments
   - Zero safety consideration, I mean **zero**:
-    - You can easily run a malicious script and mess up your system.
-- There are **no way to distribute your skills**:
-  - How to install/update/uninstall a skill properly? No one knows.
-  - There is a claude-code specific ways to install skills (through `marketplace.json`), which is confusing and not portable at all.
-  - There is a `.skill` format, but literally no one is using it.
-  - Vercel provides [skills.sh](skills.sh) as a workaround,
+    - Everything runs with your full user privileges (filesystem, network, ssh agent, browser cookies, etc.): no sandbox, no permission model, no declared read/write/network contract. You can easily run a malicious script and mess up your system.
+    - No integrity story (signing/checksums), no dependency pinning, and no standardized update flow -> supply-chain risks + no reliable security patching.
+- There is **no clear way to distribute skills**:
+  - How do you install/update/uninstall a skill properly? No one knows.
+  - Claude Code has its own installation path (through `marketplace.json`), which is confusing, not open, and not portable.
+  - There is a `.skill` format, but literally no one uses it.
+  - Vercel provides [skills.sh](skills.sh) as a workaround - decent, but still nowhere near npm or pip.
 
-**This is not flexibility, this is totally _mess_**. The original design have zero respect to the mature software-engineering practices.
+**This is not flexibility; this is a total _mess_.** The original design shows zero respect for mature software engineering practices.
 
-## What's this repository for?
+## The Solution: Skill Containers
+
+How do we fix the mess? The solution is pretty simple: **OCI containers + GitHub distribution**.
+
+### No More `scripts/`, Just Containerized CLI
+
+When scripting is needed, each skill is a CLI program with a defined environment (declared in a `Containerfile`):
+
+```tree
+├── Containerfile
+├── SKILL.md
+├── cli.py (entry point of the CLI)
+├── pyproject.toml (third-party dependencies, in a standard format)
+└── ... (other skill content, e.g. prompts, examples, etc.)
+```
+
+Container images solve the boring-but-critical engineering problems first:
+
+- **Distribution is straightforward**: any GitHub repo can publish images to GHCR.
+- **Updates are predictable**: `docker pull`.
+- **Runtime behavior is consistent** across platforms.
+
+On top of that, you get a sane safety baseline: runtime isolation from the host, plus explicit mount decisions so agents expose only what is needed instead of touching your whole machine.
+
+Inside the container, the skill is exposed as a real CLI: one execution surface, better operability, and progressive discovery via `--help`. This is exactly the interface agent skills should have had from day one.
+
+### Install Skill == Clone Repo from GitHub
+
+Like `skills.sh`, installation is just cloning a skill repo from GitHub. The author publishes the CLI image to GHCR, and users clone the repo into their local skills directory - no weird installer, no proprietary distribution path.
+
+Updates stay simple:
+
+- **Pull code**: run `git pull` in the skill repo.
+- **Pull runtime**: the runtime fetches the matching latest CLI image, so `SKILL.md` and executable behavior stay in sync instead of drifting apart.
