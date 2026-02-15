@@ -29,35 +29,45 @@ I have to say the original [Agent Skills](https://agentskills.io) format is real
 
 **This is not flexibility; this is a total _mess_.** The original design shows zero respect for mature software engineering practices.
 
-## The Solution: Skill Containers
+## The Solution: Skill Container
 
 How do we fix the mess? The solution is pretty simple: **OCI containers + GitHub distribution**.
 
 ### No More `scripts/`, Just Containerized CLI
 
-When scripting is needed, each skill is a CLI program with a defined environment (declared in a `Containerfile`):
+When scripting is needed, each skill can be ported with a CLI program running in a docker environment (declared in a `Containerfile`):
 
 ```tree
 ├── Containerfile
 ├── SKILL.md
 ├── cli.py (entry point of the CLI)
 ├── pyproject.toml (third-party dependencies, in a standard format)
-└── ... (other skill content, e.g. prompts, examples, etc.)
+└── ... (other skill content, e.g. references, examples, etc.)
 ```
 
 Container images solve the boring-but-critical engineering problems first:
 
-- **Distribution is straightforward**: any GitHub repo can publish images to GHCR.
-- **Updates are predictable**: `docker pull`.
-- **Runtime behavior is consistent** across platforms.
+- **Distribution is straightforward**: any GitHub repo can publish images to `ghcr.io`.
+- **Updates are predictable**: just `docker pull`.
+- **Runtime behavior is consistent** across all machines (Linux, Windows, Mac). The container is the contract: if it runs, it works.
 
 On top of that, you get a sane safety baseline: runtime isolation from the host, plus explicit mount decisions so agents expose only what is needed instead of touching your whole machine.
 
-Inside the container, the skill is exposed as a real CLI: one execution surface, better operability, and progressive discovery via `--help`. This is exactly the interface agent skills should have had from day one.
+**The container behaves as a real CLI**:
+
+```bash
+docker run --rm -v /local/file:/container/file ghcr.io/author/some-skill:latest --help
+# This skill can help you with:
+# - Doing X (usage: some-skill do-x --option value)
+# - Doing Y (usage: some-skill do-y --option value)
+# ...
+```
+
+one execution surface, better operability, and **progressive discovery via `--help`**. This is exactly the interface agent skills should have had from day one.
 
 ### Install Skill == Clone Repo from GitHub
 
-Like `skills.sh`, installation is just cloning a skill repo from GitHub. The author publishes the CLI image to GHCR, and users clone the repo into their local skills directory - no weird installer, no proprietary distribution path.
+Like `skills.sh`, **installation is just cloning a skill repo from GitHub**. The author publishes the CLI image to GHCR, and users clone the repo into their local skills directory.
 
 Updates stay simple:
 
