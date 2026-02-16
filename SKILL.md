@@ -1,12 +1,12 @@
 ---
 name: skill-container
-description: Guide for creating effective skills with a Containerfile-first workflow. Use this when creating or updating a skill that benefits from reproducible containerized tooling instead of custom scripts.
+description: Guide for creating effective skills with a Containerfile-first workflow. Use this when creating a new skill, updating a containerized skill, or migrating a legacy skill that still depends on scripts/ to a containerized runtime.
 license: LICENSE
 ---
 
 # Containerized Skill Authoring
 
-This skill shows how to author skills that ship a reproducible runtime via Containerfile + published image (typically GHCR), while keeping SKILL.md lean and executable.
+This skill shows how to author new skills and migrate legacy `scripts/` skills so they ship a reproducible runtime via Containerfile + published image (typically GHCR), while keeping SKILL.md lean and executable.
 
 ## About Skills
 
@@ -154,17 +154,18 @@ Keep SKILL.md as navigation plus a happy-path command flow.
 - For long reference files, add a short TOC.
 - Put variant-specific details in `references/`; keep SKILL.md focused on selection and execution.
 
-## Skill Creation Process
+## Skill Creation and Migration Process
 
-Skill creation usually follows these steps:
+Skill creation and migration usually follow these steps:
 
 1. Define triggers and constraints (`description` in frontmatter).
-2. Implement runtime resources (`Containerfile` if needed, plus `references/` and `assets/`).
-3. Write SKILL.md with runnable `docker run`/`podman run` examples and `--help` discovery commands.
-4. Validate locally (build image + smoke test) when using `Containerfile`.
-5. Package `.skill` only when your distribution channel requires it.
-6. Iterate based on real usage.
-7. Publish (GitHub repo + GHCR image tag/digest) and keep frontmatter `image` in sync.
+2. Plan reusable resources and, for migrations, map legacy `scripts/` entry points to target CLI subcommands.
+3. Implement runtime resources (`Containerfile` if needed, plus `references/` and `assets/`).
+4. Write SKILL.md with runnable `docker run`/`podman run` examples and `--help` discovery commands.
+5. Validate locally (build image + smoke test) when using `Containerfile`.
+6. Package `.skill` only when your distribution channel requires it.
+7. Iterate based on real usage.
+8. Publish (GitHub repo + GHCR image tag/digest) and keep frontmatter `image` in sync.
 
 Follow these steps in order, skipping only if there is a clear reason why they are not applicable.
 
@@ -188,20 +189,36 @@ For each representative request, decide which reusable resources are needed:
 2. `references/` docs (schemas, policies, API notes)
 3. `assets/` files (templates, sample inputs, static resources)
 
+For migration work, also create a parity map from each legacy script entry point to the target CLI subcommand and expected output contract.
+
 Quick heuristic:
 
 - Repeated environment/tool setup -> add `Containerfile`
 - Repeated factual lookup -> add `references/`
 - Repeated file scaffolding -> add `assets/`
 
-### Step 3: Initialize the Skill Workspace
+### Step 3: Initialize or Prepare the Skill Workspace
 
-Create a new skill directory with `SKILL.md` and only the resources you need.
+Create a new or existing skill directory with `SKILL.md` and only the resources you need.
 
 - If you already have a template repository, copy it.
 - Otherwise create a minimal structure manually (`SKILL.md`, optional `Containerfile`, optional `references/` and `assets/`).
+- If migrating an existing `scripts/` skill, keep the current repository, add a dedicated CLI project (for example `cli/`), and introduce `Containerfile` before removing old scripts.
 - For containerized skills, also copy `.githooks/post-merge` so `git pull` can auto-refresh the published `image` from frontmatter, then set `git config core.hooksPath .githooks`.
 - Prefer repository automation (CI workflows) over local scaffolding scripts.
+
+#### Migration Track for Legacy `scripts/` Skills
+
+When migrating an existing skill that still runs tools from `scripts/`, use this cutover path:
+
+1. Inventory every script entry point, its inputs/outputs, and side effects.
+2. Map each script to one CLI subcommand, preserving behavior and output formats where practical.
+3. Move reusable logic out of script entry points into CLI modules, then call those modules from subcommands.
+4. Build and smoke-test the containerized runtime with representative inputs.
+5. Replace script-based usage instructions in SKILL.md with published-image `docker run`/`podman run` commands.
+6. Remove `scripts/` only after parity checks pass for representative workflows.
+
+For a complete migration checklist and parity template, see [references/migration-from-scripts.md](references/migration-from-scripts.md).
 
 ### Step 4: Edit the Skill
 
@@ -213,6 +230,7 @@ Consult these helpful guides based on your skill's needs:
 
 - **Multi-step processes**: See `references/workflows.md` for sequential workflows and conditional logic
 - **Specific output formats or quality standards**: See `references/output-patterns.md` for template and example patterns
+- **Legacy `scripts/` migration**: See `references/migration-from-scripts.md` for script inventory, command mapping, and cutover checks
 - **CLI implementation and safety**: See `references/cli-authoring.md` for command design, dependency strategy, and dry-run patterns
 - **Repository release and distribution**: See `references/github-publishing.md` for publishing skills as GitHub repositories
 
