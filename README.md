@@ -7,7 +7,7 @@ Skill Containers are a simple, open, and portable format for giving agents new c
 > [!IMPORTANT]
 > **TL;DR:** The original Agent Skills format still has several core engineering gaps: unclear runtime contracts, weak portability, limited safety boundaries, and no clean distribution/update story.
 
-The original [Agent Skills](https://agentskills.io) format has good intentions, and its progressive capability disclosure idea is especially important for agent usability. In practice, however, it still has several design issues that make production use difficult.
+The original [Agent Skills](https://agentskills.io) format has good intentions, and its progressive disclosure idea is especially important for agent usability. In practice, however, it still has several design issues that make production use difficult.
 
 - They use `scripts/` for executable tools, but **do not specify how to run them**:
   - Skills often use Python scripts with `#!/usr/bin/env python3` and third-party dependencies. This leads to:
@@ -73,3 +73,11 @@ Updates stay simple:
 
 - **Pull code**: run `git pull` in the skill repo.
 - **Pull runtime**: the runtime fetches the matching latest CLI image, so `SKILL.md` and executable behavior stay in sync instead of drifting apart.
+
+## What's This Repository For?
+
+This repository is itself **a skill for creating new skills or migrating existing ones into the Skill Container format**.
+
+After you use this skill, the agent handles containerization details automatically (runtime packaging, container entry surface, and execution wiring), so skill authors can keep focusing on business/domain content as before.
+
+Try it out!
