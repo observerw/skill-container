@@ -38,10 +38,12 @@ How can we improve this? The solution is pretty simple: **OCI containers + GitHu
 When scripting is needed, each skill can be ported with a CLI program running in a docker environment (declared in a `Containerfile`):
 
 ```tree
-├── Containerfile
+├── .github/ (for distribution)
 ├── SKILL.md
-├── cli.py (entry point of the CLI)
-├── pyproject.toml (third-party dependencies, in a standard format)
+├── references/
+├── scripts/
+│   └── cli.py (CLI entrypoint)
+├── Containerfile (declares the runtime environment)
 └── ... (other skill content, e.g. references, examples, etc.)
 ```
 
