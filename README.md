@@ -5,33 +5,33 @@ Skill Containers are a simple, open, and portable format for giving agents new c
 ## Why?
 
 > [!IMPORTANT]
-> **TL;DR:** The original Agent Skills format looks flexible, but it breaks core engineering basics: unclear runtime contracts, weak portability, basically zero safety boundaries, and no clean distribution/update story.
+> **TL;DR:** The original Agent Skills format still has several core engineering gaps: unclear runtime contracts, weak portability, limited safety boundaries, and no clean distribution/update story.
 
-I have to say the original [Agent Skills](https://agentskills.io) format is really, _really_ poorly designed. It feels like it was put together in 5 minutes and still presented as a serious "standard".
+The original [Agent Skills](https://agentskills.io) format has good intentions, and its progressive capability disclosure idea is especially important for agent usability. In practice, however, it still has several design issues that make production use difficult.
 
 - They use `scripts/` for executable tools, but **do not specify how to run them**:
   - Skills often use Python scripts with `#!/usr/bin/env python3` and third-party dependencies. This leads to:
-    - Messing up your local environment (e.g. `pip install` into your system Python environment)
+    - Polluting your local environment (e.g. `pip install` into your system Python environment)
     - **No cross-platform support**
     - **No proper documentation** on how to run scripts
     - ...
   - Many skills are just wrappers around existing CLI programs, which often assume the right CLI (and version) is already installed on the host machine:
     - Easy to end up with the installed CLI version drifting from what the `SKILL` content expects
     - The same skill may behave differently across machines/environments
-  - Zero safety consideration, I mean **zero**:
+  - Safety boundaries are still very limited:
     - Everything runs with your full user privileges (filesystem, network, ssh agent, browser cookies, etc.): no sandbox, no permission model, no declared read/write/network contract. You can easily run a malicious script and mess up your system.
     - No integrity story (signing/checksums), no dependency pinning, and no standardized update flow -> supply-chain risks + no reliable security patching.
 - There is **no clear way to distribute skills**:
-  - How do you install/update/uninstall a skill properly? No one knows.
+  - Installation/update/uninstall workflows are not clearly standardized yet.
   - Claude Code has its own installation path (through `marketplace.json`), which is confusing, not open, and not portable.
-  - There is a `.skill` format, but literally no one uses it.
-  - Vercel provides [skills.sh](skills.sh) as a workaround - decent, but still nowhere near npm or pip.
+  - There is a `.skill` format, but adoption is still very limited.
+  - Vercel provides [skills.sh](skills.sh) as a workaround - helpful, but still not as standardized as npm or pip.
 
-**This is not flexibility; this is a total _mess_.** The original design shows zero respect for mature software engineering practices.
+**This is not only a flexibility tradeoff; it also creates real operational friction.** The original design still misses several practices expected in mature software engineering.
 
 ## The Solution: Skill Container
 
-How do we fix the mess? The solution is pretty simple: **OCI containers + GitHub distribution**.
+How can we improve this? The solution is pretty simple: **OCI containers + GitHub distribution**.
 
 ### No More `scripts/`, Just Containerized CLI
 
